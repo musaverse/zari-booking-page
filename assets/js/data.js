@@ -1,26 +1,25 @@
 /* ==========================================================================
-   ZARI — Booking data
-   --------------------------------------------------------------------------
-   Everything a guest sees about rooms, rates and policies lives here, so the
-   reservations team can update a price or a sentence without touching the UI.
-
-   Miln Town rates, occupancy pricing, inventory and policies were taken from
-   the existing Stayflexi booking engine (hotel_id 41702) in November 2026.
-
-   Bijapur Lodge has no published rates yet: any rate set to `null` is shown
-   as "Rate on request" and the booking is sent as a reservation request.
+   ZARI — Site settings
+   Houses, rooms, rates and policies live in assets/data/properties.json,
+   which both this site and the server (booking.php / payment.php) read,
+   so a price is only ever written in one place.
    ========================================================================== */
 
 window.ZARI_CONFIG = {
-  // Where reservation requests are POSTed (JSON). booking.php ships with
-  // this repo and emails the reservations desk. Set to "" to fall back to
-  // a pre-filled email to RESERVATIONS_EMAIL.
+  DATA_URL: "assets/data/properties.json",
+
+  // Reservation endpoint (JSON POST). Set to "" to fall back to email.
   BOOKING_ENDPOINT: "booking.php",
+  // Razorpay order + verification endpoint. Payments switch on automatically
+  // once RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are set on the server.
+  PAYMENT_ENDPOINT: "payment.php",
+  // Preview builds only: shows a demonstration payment screen, no money moves.
+  DEMO_PAYMENTS: false,
+
   RESERVATIONS_EMAIL: "arrivals@thezari.co.in",
   MAIN_SITE: "https://thezari.co.in",
 
-  // Display-only conversion from INR. All bookings are charged in INR.
-  // Update occasionally; the UI labels converted prices as approximate.
+  // Display-only conversion from INR. Guests are always charged in INR.
   CURRENCIES: {
     INR: { symbol: "₹", rate: 1, locale: "en-IN" },
     USD: { symbol: "$", rate: 0.0119, locale: "en-US" },
@@ -30,252 +29,11 @@ window.ZARI_CONFIG = {
     SGD: { symbol: "S$", rate: 0.0155, locale: "en-SG" }
   },
 
-  TAX_RATE: 0.18 // GST on room tariff
+  TAX_RATE: 0.18 // GST on room tariff — keep in step with booking.php
 };
 
-window.ZARI_PROPERTIES = [
-  /* ------------------------------------------------------------------ */
-  {
-    id: "miln-town",
-    name: "Miln Town",
-    logo: "assets/logos/miln-town.svg",
-    region: "Coonoor · The Nilgiris",
-    state: "Tamil Nadu",
-    headline: "The House Remembers.",
-    tagline: "Nobody has ever regretted one more day in the hills.",
-    story:
-      "Nearly two hundred years ago, a Scottish villa found its place among the hills of Coonoor. The old floors still creak in familiar places, and the verandahs still catch the afternoon light. At 1,800 metres, breakfast stretches into conversation, walks happen when the mist lifts, and tea arrives before it is requested.",
-    hero: "assets/img/hero-miln-town.webp",
-    cardImage: "assets/img/milntown-home.webp",
-    gallery: [
-      "assets/img/milntown-g1.webp",
-      "assets/img/milntown-g2.webp",
-      "assets/img/milntown-mist.webp",
-      "assets/img/milntown-g4.webp",
-      "assets/img/milntown-fireplace.webp",
-      "assets/img/milntown-g3.webp"
-    ],
-    facts: [
-      ["Altitude", "1,800 m"],
-      ["The house", "Nearly 200 years old"],
-      ["Rooms", "Eight, none alike"],
-      ["Getting here", "Coimbatore, then the hills"]
-    ],
-    highlights: [
-      "Tea on the verandah",
-      "Breakfast from the kitchen garden",
-      "Walks after the rain",
-      "Evenings by the fire"
-    ],
-    amenities: [
-      "Wi-Fi throughout",
-      "Breakfast, lunch & dinner",
-      "In-room dining",
-      "Complimentary parking",
-      "Valet parking",
-      "24-hour front desk",
-      "24-hour power backup",
-      "Kitchen garden"
-    ],
-    address: "Rielley Compound, 90/G, Alwarpet, Coonoor, Tamil Nadu 643101, India",
-    map: { lat: 11.35324, lng: 76.80578 },
-    checkIn: "1:00 PM",
-    checkOut: "11:00 AM",
-    minNights: 1,
-    advance: 0.5, // share of the total due to guarantee the booking
-    rooms: [
-      {
-        id: "heritage-room",
-        name: "Heritage Room",
-        summary: "Traditional charm, quietly modern comforts.",
-        description:
-          "Elegant period décor, cosy furnishings and a warm light that settles in by the afternoon. Each Heritage Room has its own character, its own creak in the floor and its own view of the garden.",
-        images: [
-          "https://prodimagesbucket.blob.core.windows.net/roomtype-images/41702/12353/d148af92-5b9f-43b0-8305-b85a2a7bdfd8",
-          "https://prodimagesbucket.blob.core.windows.net/roomtype-images/41702/12353/01a2c830-f8a4-4aa6-acf2-8e3e2d2d147f",
-          "https://prodimagesbucket.blob.core.windows.net/roomtype-images/41702/12353/ad3c2b63-0b25-4b2f-b988-cb04b8c2c457",
-          "https://prodimagesbucket.blob.core.windows.net/roomtype-images/41702/12353/e84c6125-45f5-4850-9aed-76d0bc6d7fb1"
-        ],
-        fallbackImages: ["assets/img/milntown-g2.webp", "assets/img/milntown-house.webp"],
-        specs: ["Up to 3 guests", "Private bathroom", "Garden views"],
-        amenities: ["Wi-Fi", "Air conditioning", "Television", "Rain shower", "Fresh towels", "Bottled water"],
-        maxGuests: 3,
-        maxAdults: 3,
-        maxChildren: 1,
-        inventory: 3,
-        // Nightly price by occupancy: "adults" or "adults+children"
-        rates: {
-          CP: { "1": 9600, "2": 9600, "3": 10400, "1+1": 9600, "2+1": 10400 },
-          MAP: { "1": 11200, "2": 11200, "3": 12800, "1+1": 11200, "2+1": 12400 },
-          AP: { "1": 12800, "2": 12800, "3": 15200, "1+1": 12800, "2+1": 14800 }
-        },
-        rackRates: { CP: 12000, MAP: 14000, AP: 16000 }
-      },
-      {
-        id: "heritage-suite",
-        name: "Heritage Suite",
-        summary: "Two bedrooms and a living room, for families and old friends.",
-        description:
-          "Two comfortable bedrooms, generous living spaces and traditional décor, arranged so that a family or a small group can be together without being on top of one another.",
-        images: [
-          "https://prodimagesbucket.blob.core.windows.net/roomtype-images/41702/12354/1afbb2d2-a9d9-44cf-b115-cfef92d94a79",
-          "https://prodimagesbucket.blob.core.windows.net/roomtype-images/41702/12354/6b9b4575-f91a-4348-8ca2-59dc719596e9",
-          "https://prodimagesbucket.blob.core.windows.net/roomtype-images/41702/12354/e6030a10-03a8-4e26-9886-e72883f4af2e"
-        ],
-        fallbackImages: ["assets/img/milntown-g4.webp", "assets/img/milntown-g1.webp"],
-        specs: ["Up to 5 guests", "2 bedrooms", "Living room"],
-        amenities: ["Air conditioning", "Television", "Rain shower", "Fresh towels", "Bottled water"],
-        maxGuests: 5,
-        maxAdults: 5,
-        maxChildren: 1,
-        inventory: 1,
-        rates: {
-          CP: { "1": 12800, "2": 12800, "3": 12800, "4": 12800, "5": 13600, "1+1": 12800, "2+1": 12800, "3+1": 12800, "4+1": 13600 },
-          MAP: { "1": 14400, "2": 14400, "3": 14400, "4": 14400, "5": 16000, "1+1": 14400, "2+1": 14400, "3+1": 14400, "4+1": 15600 },
-          AP: { "1": 16000, "2": 16000, "3": 16000, "4": 16000, "5": 18400, "1+1": 16000, "2+1": 16000, "3+1": 16000, "4+1": 18000 }
-        },
-        rackRates: { CP: 16000, MAP: 18000, AP: 20000 }
-      }
-    ],
-    ratePlans: [
-      { id: "CP", name: "Bed & Breakfast", detail: "Breakfast from the kitchen garden" },
-      { id: "MAP", name: "Half Board", detail: "Breakfast, with lunch or dinner" },
-      { id: "AP", name: "Full Board", detail: "All meals, every day" }
-    ],
-    houseRules: [
-      "Pets are not allowed.",
-      "Every guest must present valid photo ID at check-in.",
-      "Unmarried couples are welcome with valid photo ID.",
-      "Check-out must be completed by the specified time."
-    ],
-    payment:
-      "A 50% advance guarantees your reservation; the balance is due before arrival. Our team will send you a secure payment link once your dates are confirmed.",
-    cancellation: [
-      {
-        season: "Non-peak · 1 Sep – 30 Sep",
-        lines: [
-          "Full prepayment 15 days before arrival.",
-          "50% retained for cancellation 15 to 5 days before arrival.",
-          "100% retained within 5 days of arrival."
-        ]
-      },
-      {
-        season: "Peak · 1 Oct – 20 Dec & 5 Jan – 31 Mar",
-        lines: [
-          "Full prepayment 30 days before arrival.",
-          "50% retained for cancellation 30 to 15 days before arrival.",
-          "100% retained within 15 days of arrival."
-        ]
-      },
-      {
-        season: "Festive · 21 Dec – 4 Jan",
-        lines: [
-          "Full prepayment 60 days before arrival.",
-          "50% retained for cancellation 60 to 45 days before arrival.",
-          "100% retained within 45 days of arrival."
-        ]
-      }
-    ]
-  },
-
-  /* ------------------------------------------------------------------ */
-  {
-    id: "bijapur-lodge",
-    name: "Bijapur Lodge",
-    logo: "assets/logos/bijapur-lodge.svg",
-    region: "Jawai · Rajasthan",
-    state: "Rajasthan",
-    headline: "Nothing Was Missing. It Was Only Waiting.",
-    tagline: "People come for the leopard. They remember the evenings.",
-    story:
-      "Six suites spread across five rewilded acres in leopard country. More than three hundred species now share the land. Days move slowly here: lunch becomes tea, tea becomes stories, and stories somehow continue long after dinner.",
-    hero: "assets/img/hero-bijapur-lodge.webp",
-    cardImage: "assets/img/bijapur-home.webp",
-    gallery: [
-      "assets/img/bijapur-gallery-1.webp",
-      "assets/img/bijapur-leopard.webp",
-      "assets/img/bijapur-gallery-5.webp",
-      "assets/img/bijapur-stars.webp",
-      "assets/img/bijapur-tea.webp",
-      "assets/img/bijapur-gallery-7.webp"
-    ],
-    facts: [
-      ["The lodge", "Six suites, five acres"],
-      ["The company", "Leopards & Rabaris"],
-      ["Species", "Three hundred and counting"],
-      ["Getting here", "Udaipur airport, then the hills"]
-    ],
-    highlights: [
-      "Morning & evening drives",
-      "Tea with the Rabaris",
-      "Dinner beneath the stars",
-      "Sunsets you can't hurry"
-    ],
-    amenities: [
-      "Leopard-country drives",
-      "All meals at the lodge",
-      "Plunge pool",
-      "Fire pit evenings",
-      "Birding walks",
-      "Airport transfers on request"
-    ],
-    address: "Jawai, Pali District, Rajasthan, India",
-    map: null,
-    checkIn: "1:00 PM",
-    checkOut: "11:00 AM",
-    minNights: 2,
-    advance: null,
-    rooms: [
-      {
-        id: "lodge-suite",
-        name: "Lodge Suite",
-        summary: "Stone, light and a view of the granite hills.",
-        description:
-          "Each of the six suites is set apart on the five acres, with a deep bed, a sitting nook by the window and a private verandah for the hour when the hills turn gold.",
-        images: ["assets/img/bijapur-gallery-2.webp", "assets/img/bijapur-gallery-6.webp", "assets/img/bijapur-gallery-4.webp"],
-        fallbackImages: [],
-        specs: ["Up to 3 guests", "Private verandah", "Hill views"],
-        amenities: ["Air conditioning", "Rain shower", "Fresh towels", "Bottled water", "Reading nook"],
-        maxGuests: 3,
-        maxAdults: 3,
-        maxChildren: 1,
-        inventory: 6,
-        // Rates not yet published. Replace null with an occupancy map like
-        // Miln Town's to enable instant pricing.
-        rates: { AP: null },
-        rackRates: {}
-      }
-    ],
-    ratePlans: [{ id: "AP", name: "Full Board", detail: "All meals and two drives a day" }],
-    houseRules: [
-      "Every guest must present valid photo ID at check-in.",
-      "Drives are shared unless a private jeep is requested.",
-      "Check-out must be completed by the specified time."
-    ],
-    payment:
-      "Our reservations team will confirm the tariff for your dates and send a secure payment link to guarantee the booking.",
-    cancellation: [
-      {
-        season: "All dates",
-        lines: ["Cancellation terms are shared with your confirmed tariff, before any payment is taken."]
-      }
-    ]
-  }
-];
-
-/* Houses that are not yet bookable online — shown on the landing page and
-   routed to the "request your stay" conversation on the main site. */
+/* Houses not yet bookable online, routed to a conversation. */
 window.ZARI_COMING_SOON = [
-  {
-    name: "Kaayal Orum",
-    region: "Kerala",
-    line: "The river has always been the address.",
-    url: "https://thezari.co.in/kaayal-orum.php"
-  },
-  {
-    name: "Uttarakhand Lodge",
-    region: "Uttarakhand",
-    line: "Certain houses settle you before you've unpacked.",
-    url: "https://thezari.co.in/uttarakhand-lodge.php"
-  }
+  { name: "Kaayal Orum", region: "Kerala", line: "The river has always been the address.", url: "https://thezari.co.in/kaayal-orum.php" },
+  { name: "Uttarakhand Lodge", region: "Uttarakhand", line: "Certain houses settle you before you've unpacked.", url: "https://thezari.co.in/uttarakhand-lodge.php" }
 ];
