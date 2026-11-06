@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reserve Your Stay · ZARI</title>
+  <meta name="description" content="Reserve a stay at a ZARI house — Miln Town in the Nilgiris or Bijapur Lodge in leopard country. Best rates, booked directly.">
+  <meta name="theme-color" content="#0C190E">
+  <meta property="og:title" content="Reserve Your Stay · ZARI">
+  <meta property="og:description" content="Places with a life of their own. Book directly with ZARI.">
+  <meta property="og:image" content="assets/img/hero-miln-town.webp">
+  <link rel="icon" href="assets/logos/zari.svg" type="image/svg+xml">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,300;1,400&family=Italiana&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/zari.css">
+  <link rel="preload" as="image" href="assets/img/hero-miln-town.webp">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+
+  <header class="topbar" id="topbar">
+    <div class="topbar__left">
+      <a class="topbar__back" href="#/" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+        <span>All houses</span>
+      </a>
+    </div>
+    <a class="topbar__logo" href="#/" aria-label="ZARI — all houses" data-logo="zari"></a>
+    <div class="topbar__right">
+      <label class="currency">
+        <span class="sr-only">Display currency</span>
+        <select id="currency"></select>
+      </label>
+      <a class="topbar__help" id="help-link" href="mailto:arrivals@thezari.co.in" aria-label="Write to reservations">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h17v11h-17z M3.5 6.5l8.5 6.5 8.5-6.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        <span>Write to us</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <div class="mobilebar" id="mobilebar" hidden></div>
+  <div class="layer" id="layer" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <p style="padding:6rem 1.5rem;text-align:center;color:#F4EBE6;font-family:Georgia,serif">
+      Reservations need JavaScript. You can also write to
+      <a style="color:#B48F30" href="mailto:arrivals@thezari.co.in">arrivals@thezari.co.in</a>.
+    </p>
+  </noscript>
+
+  <script src="assets/js/logos.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
