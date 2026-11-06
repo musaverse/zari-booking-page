@@ -254,8 +254,8 @@
         '<div class="phero__inner"><p class="phero__region">' + esc(p.region) + "</p>" + logo(p.id, "phero__logo") + '<p class="phero__tag">' + esc(p.tagline) + "</p>" +
         '<a class="btn btn--white" href="#/' + p.id + '/stay/dates">Reserve your stay ' + I.arrow + "</a></div>" +
         '<span class="phero__scroll">Discover the house</span></section>' +
-      '<section class="chapter"><div class="chapter__img"><img src="' + p.gallery[0] + '" alt="" loading="lazy"></div>' +
-        '<div class="chapter__text"><div class="reveal"><p class="kicker">' + esc(p.name) + '</p><h2 class="h2">' + esc(p.headline) + '</h2><p class="body-lg">' + esc(p.story) + '</p><dl class="facts">' + p.facts.map(function (f) { return "<div><dt>" + esc(f[0]) + "</dt><dd>" + esc(f[1]) + "</dd></div>"; }).join("") + "</dl></div></div></section>" +
+      '<section class="chapter chapter--intro"><div class="chapter__text"><div class="reveal"><p class="kicker">' + esc(p.name) + '</p><h2 class="h2">' + esc(p.headline) + '</h2><p class="body-lg">' + esc(p.story) + '</p><dl class="facts">' + p.facts.map(function (f) { return "<div><dt>" + esc(f[0]) + "</dt><dd>" + esc(f[1]) + "</dd></div>"; }).join("") + "</dl></div></div>" +
+        '<div class="chapter__img"><img src="' + p.gallery[0] + '" alt="" loading="lazy"></div></section>' +
       '<section class="showcase"><div class="wrap"><div class="showcase__head"><div class="reveal"><p class="kicker">Where you\'ll sleep</p><h2 class="h2">Rooms, <em>none alike.</em></h2></div>' +
         '<a class="btn btn--ink reveal" href="#/' + p.id + '/stay/dates">Check dates ' + I.arrow + '</a></div><div class="showcase__grid">' +
         p.rooms.map(function (r, i) {
@@ -470,7 +470,7 @@
         "<div><span>Taxes (GST " + Math.round(CFG.TAX_RATE * 100) + "%)</span><span>" + money(q.tax) + '</span></div><div class="grand"><span>Total</span><strong>' + money(q.total) + "</strong></div>" +
         (currency !== "INR" ? '<div class="approx">Approximate. You will be charged ' + inr(q.total) + " in rupees.</div>" : "")) + "</div>" +
       (payable ? '<div class="payopts" role="radiogroup" aria-label="How much would you like to pay now?">' + opts.map(function (o) { return '<button type="button" role="radio" aria-checked="' + (t.pay === o[0]) + '" class="payopt' + (t.pay === o[0] ? " is-on" : "") + '" data-action="pay-opt" data-v="' + o[0] + '"><span class="payopt__dot"></span><strong>' + o[1] + "</strong><span>" + o[2] + "</span><b>" + money(o[3]) + "</b></button>"; }).join("") + "</div>" : "") +
-      '<label class="consent" data-f="consent"><input type="checkbox" id="f-consent"' + (t.consent ? " checked" : "") + '><span>I agree to the <button type="button" data-action="policies">house rules and cancellation policy</button>.</span></label>' +
+      '<label class="consent" data-f="consent"><input type="checkbox" id="f-consent"' + (t.consent ? " checked" : "") + '><span>I agree to the <button type="button" data-action="policies">house rules and cancellation policy</button></span></label>' +
       '<div data-bind="alert"></div>' +
       (payable ? '<ul class="secure"><li>' + I.lock + "Secure payment in rupees</li><li>" + I.upi + "UPI</li><li>" + I.card + "Cards</li><li>" + I.bank + "Net banking</li></ul>" : "");
   }
@@ -479,9 +479,9 @@
   function renderFoot() {
     var p = J.p, t = trip, s = J.step, idx = stepIndex(s), q = quote(p, t), al = q.alloc;
     var sum;
-    if (s === "dates" || s === "guests") sum = "<small>" + (t.checkIn && t.checkOut ? fmt(t.checkIn, { day: "numeric", month: "short" }) + " – " + fmt(t.checkOut, { day: "numeric", month: "short" }) + " · " : "") + guestsLabel(t.adults, t.children) + "</small><strong>" + esc(p.name) + "</strong>";
+    if (s === "dates" || s === "guests") sum = "<small>" + (t.checkIn && t.checkOut ? fmt(t.checkIn, { day: "numeric", month: "short" }) + " – " + fmt(t.checkOut, { day: "numeric", month: "short" }) + '<span class="xs-hide"> · ' + guestsLabel(t.adults, t.children) + "</span>" : guestsLabel(t.adults, t.children)) + "</small><strong>" + esc(p.name) + "</strong>";
     else if (!al.ok) sum = "<small>" + guestsLabel(t.adults, t.children) + "</small><strong>Choose rooms</strong>";
-    else sum = "<small>" + plural(q.nights, "night") + " · " + (t.plan ? esc(q.plan.name) : "from") + (q.onRequest ? "" : ", incl. taxes") + "</small><strong>" + (q.onRequest ? "Tariff on request" : money(q.total)) + "</strong>";
+    else sum = "<small>" + plural(q.nights, "night") + (t.plan ? '<span class="xs-hide"> · ' + esc(q.plan.name) + "</span>" : " · from") + (q.onRequest ? "" : ", incl. taxes") + "</small><strong>" + (q.onRequest ? "Tariff on request" : money(q.total)) + "</strong>";
     var ok = { dates: !!(t.checkIn && t.checkOut), guests: t.adults >= 1, rooms: al.ok, dining: !!t.plan, touches: true, you: true, review: true }[s];
     var label = s === "review" ? (q.onRequest ? "Send request" : "Pay " + money(t.pay === "full" || !q.advance ? q.total : q.advance)) : s === "touches" && !t.occasion.length && !t.arrival && !t.notes ? "Skip" : "Continue";
     $('[data-bind="foot"]').innerHTML = '<div class="j-foot__sum">' + sum + '</div><div class="j-foot__btns">' +
