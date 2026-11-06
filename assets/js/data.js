@@ -5,16 +5,20 @@
    so a price is only ever written in one place.
    ========================================================================== */
 
+/* On static preview hosts (no PHP) the site switches to its preview mode:
+   the demo payment screen is shown and nothing is sent or charged. */
+var ZARI_STATIC_PREVIEW = /(^|\.)(github\.io|netlify\.app|vercel\.app|pages\.dev)$/.test(location.hostname);
+
 window.ZARI_CONFIG = {
   DATA_URL: "assets/data/properties.json",
 
   // Reservation endpoint (JSON POST). Set to "" to fall back to email.
-  BOOKING_ENDPOINT: "booking.php",
+  BOOKING_ENDPOINT: ZARI_STATIC_PREVIEW ? "" : "booking.php",
   // Razorpay order + verification endpoint. Payments switch on automatically
   // once RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are set on the server.
   PAYMENT_ENDPOINT: "payment.php",
   // Preview builds only: shows a demonstration payment screen, no money moves.
-  DEMO_PAYMENTS: false,
+  DEMO_PAYMENTS: ZARI_STATIC_PREVIEW,
 
   RESERVATIONS_EMAIL: "arrivals@thezari.co.in",
   MAIN_SITE: "https://thezari.co.in",
