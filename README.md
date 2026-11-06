@@ -2,8 +2,8 @@
 
 The direct booking experience for ZARI houses, replacing the Stayflexi booking engine.
 
-**Flow:** choose a house → dates & guests → rooms & dining plan → guest details → confirmation (reference number + calendar file).
-Designed for desktop and mobile: split-screen house selection, full-bleed heroes, a two-month calendar on desktop that becomes a scrolling bottom sheet on phones, a sticky "Your stay" panel on desktop and a sticky price bar on mobile.
+**Flow:** ZARI welcome → choose a house → dates & guests → rooms & dining plan → guest details → confirmation (reference number + calendar file).
+Opens on a ZARI welcome (full-screen photography), then the houses. Each house has a sticky date/guest bar, rooms with meal plans you select in one tap, and a running "Your stay" total; on phones the calendar and stay summary open as bottom sheets with a sticky price bar.
 
 ## Stack
 
@@ -54,5 +54,5 @@ No card details are collected. The guest confirms, the team receives an email, a
 
 ## Brand
 
-Palette: forest `#0C190E` / `#112616`, cream `#F4EBE6`, sand `#E0D5CE`, gold `#B48F30`, earth `#291613`.
-Type: Italiana (display), Cormorant Garamond (voice), Jost (interface).
+Palette: paper `#FCFAF8`, stone `#F4EFEB`, sand `#E6DDD6`, ink `#221815`; colour comes from the photography and the house logos.
+Type: Instrument Serif (display), Manrope (interface).
