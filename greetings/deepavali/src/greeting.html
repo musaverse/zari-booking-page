@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ZARI · Shubh Deepavali</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..400&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Brand palette, sampled from the ZARI logo files */
+  :root {
+    --forest: #122616;
+    --maroon: #291513;
+    --gold: #B68E30;
+    --gold-hi: #E2C277;
+    --gold-lo: #8A6A21;
+    --cream: #F4EBE7;
+    --bg: var(--forest);
+    --W: 1080px; --H: 1350px;
+  }
+  body.maroon { --bg: var(--maroon); }
+  body.story  { --H: 1920px; }
+  body.square { --H: 1080px; }
+
+  html, body { margin: 0; background: #000; }
+  .card {
+    position: relative; width: var(--W); height: var(--H); overflow: hidden;
+    background:
+      radial-gradient(ellipse 46% 34% at 50% var(--glow-y, 47%), rgba(226,178,90,.20), rgba(226,178,90,0) 70%),
+      radial-gradient(ellipse 90% 70% at 50% 50%, rgba(0,0,0,0) 40%, rgba(0,0,0,.38) 100%),
+      var(--bg);
+    font-family: "Fraunces", Georgia, serif; color: var(--gold);
+  }
+  /* faint paper grain */
+  .card::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  svg.frame, svg.sparks { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .stage { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; }
+
+  .mono {
+    width: 230px; aspect-ratio: 756 / 1104;
+    background: linear-gradient(160deg, var(--gold-hi) 0%, var(--gold) 45%, var(--gold-lo) 100%);
+    -webkit-mask: url(monogram.png) center / contain no-repeat; mask: url(monogram.png) center / contain no-repeat;
+    filter: drop-shadow(0 0 22px rgba(226,178,90,.35));
+  }
+  .lamp { margin-top: 34px; width: 300px; overflow: visible; }
+
+  h1 {
+    margin: 0; font-weight: 300; font-style: italic; font-size: 92px; line-height: 1; letter-spacing: -.01em;
+    font-variation-settings: "opsz" 144;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, var(--gold-lo));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .line {
+    margin-top: 26px; font-family: "Manrope", sans-serif; font-size: 15px; font-weight: 500;
+    letter-spacing: .42em; text-transform: uppercase; color: var(--cream); opacity: .72; padding-left: .42em;
+  }
+  .rule { width: 64px; height: 1px; background: var(--gold); opacity: .7; margin: 30px 0 0; }
+
+  .sign { position: absolute; left: 0; right: 0; bottom: var(--sign-b, 92px); display: flex; flex-direction: column; align-items: center; }
+  .sign img { width: 132px; }
+  .houses {
+    margin-top: 18px; font-family: "Manrope", sans-serif; font-size: 12px; font-weight: 500;
+    letter-spacing: .38em; text-transform: uppercase; color: var(--cream); opacity: .5; padding-left: .38em;
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <svg class="sparks" id="sparks" aria-hidden="true"></svg>
+  <svg class="frame" id="frame" aria-hidden="true"></svg>
+
+  <div class="stage" id="stage">
+    <div class="mono" role="img" aria-label="ZARI monogram"></div>
+
+    <!-- Diya: front view, engraved band, a single flame -->
+    <svg class="lamp" viewBox="0 0 300 150" aria-hidden="true">
+      <defs>
+        <radialGradient id="flameGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stop-color="#FFE3A3" stop-opacity=".95"/>
+          <stop offset=".35" stop-color="#F0B54E" stop-opacity=".45"/>
+          <stop offset="1" stop-color="#F0B54E" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#C9662A"/>
+          <stop offset=".35" stop-color="#F3B648"/>
+          <stop offset=".8" stop-color="#FFF1C9"/>
+          <stop offset="1" stop-color="#FFFFFF"/>
+        </linearGradient>
+        <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#E2C277"/><stop offset=".5" stop-color="#B68E30"/><stop offset="1" stop-color="#8A6A21"/>
+        </linearGradient>
+      </defs>
+      <circle cx="150" cy="18" r="56" fill="url(#flameGlow)"/>
+      <path d="M150 -14 C 160 4, 166 20, 160 34 C 156 42, 144 42, 140 34 C 134 20, 140 4, 150 -14 Z" fill="url(#flame)"/>
+      <g fill="none" stroke="url(#goldStroke)" stroke-width="2.2" stroke-linecap="round">
+        <ellipse cx="150" cy="52" rx="118" ry="12"/>
+        <path d="M32 52 C 44 104, 96 122, 150 122 C 204 122, 256 104, 268 52"/>
+        <path d="M58 78 C 90 92, 210 92, 242 78" stroke-width="1.2" opacity=".85"/>
+        <path d="M120 122 C 124 130, 126 134, 112 140 L 188 140 C 174 134, 176 130, 180 122"/>
+        <line x1="104" y1="146" x2="196" y2="146" stroke-width="1.2" opacity=".8"/>
+      </g>
+      <g fill="#B68E30" opacity=".9" id="beads"></g>
+    </svg>
+
+    <h1>Shubh Deepavali</h1>
+    <div class="rule"></div>
+    <div class="line">May every homecoming glow</div>
+  </div>
+
+  <div class="sign">
+    <img src="zari-gold.svg" alt="ZARI">
+    <div class="houses">Miln Town &nbsp;·&nbsp; Bijapur Lodge</div>
+  </div>
+</div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('theme') === 'maroon') document.body.classList.add('maroon');
+  const fmt = q.get('format') || 'portrait';
+  document.body.classList.add(fmt);
+  const W = 1080, H = fmt === 'story' ? 1920 : fmt === 'square' ? 1080 : 1350;
+
+  // layout per format
+  const L = {
+    portrait: { stage: 270, sign: 170, row: 112, inset: 56, spring: 470, apex: 92 },
+    square:   { stage: 205, sign: 118, row: 80, inset: 44, spring: 400, apex: 70, scale: .66 },
+    story:    { stage: 600, sign: 250, row: 132, inset: 60, spring: 760, apex: 250 },
+  }[fmt];
+  const stage = document.getElementById('stage');
+  stage.style.top = L.stage + 'px';
+  if (L.scale) { stage.style.transform = `scale(${L.scale})`; stage.style.transformOrigin = '50% 0'; }
+  document.documentElement.style.setProperty('--sign-b', L.sign + 'px');
+  document.getElementById('card').style.setProperty('--glow-y', fmt === 'story' ? '45%' : fmt === 'square' ? '42%' : '46%');
+
+  // diya beads along the bowl
+  const beads = document.getElementById('beads');
+  for (let i = 0; i < 9; i++) {
+    const t = (i + 1) / 10, x = 58 + t * 184;
+    const y = 78 + 14 * Math.sin(Math.PI * t) * .0 + (Math.pow(2 * t - 1, 2) * -14 + 14) ;
+    beads.insertAdjacentHTML('beforeend', `<circle cx="${x.toFixed(1)}" cy="${(y + 6).toFixed(1)}" r="1.8"/>`);
+  }
+
+  // Jharokha arch frame: ogee top, double gold line, small finial
+  const ns = 'http://www.w3.org/2000/svg';
+  const frame = document.getElementById('frame');
+  frame.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const arch = (d) => {
+    const l = L.inset + d, r = W - L.inset - d, b = H - L.inset - d, s = L.spring + d * .4, a = L.apex + d;
+    const cx = W / 2, w = r - l;
+    return `M${l} ${b} L${l} ${s}
+            C${l} ${s - w * .26}, ${cx - w * .2} ${a + w * .17}, ${cx - w * .05} ${a + w * .07}
+            Q${cx - 6} ${a + 12}, ${cx} ${a}
+            Q${cx + 6} ${a + 12}, ${cx + w * .05} ${a + w * .07}
+            C${cx + w * .2} ${a + w * .17}, ${r} ${s - w * .26}, ${r} ${s}
+            L${r} ${b} Z`;
+  };
+  frame.innerHTML = `
+    <defs><linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E2C277"/><stop offset=".5" stop-color="#B68E30"/><stop offset="1" stop-color="#8A6A21"/>
+    </linearGradient></defs>
+    <path d="${arch(0)}" fill="none" stroke="url(#fg)" stroke-width="1.6" opacity=".9"/>
+    <path d="${arch(12)}" fill="none" stroke="url(#fg)" stroke-width=".8" opacity=".55"/>
+    <g fill="#B68E30">
+      <path d="M${W/2} ${L.apex - 34} C ${W/2 + 7} ${L.apex - 22}, ${W/2 + 7} ${L.apex - 14}, ${W/2} ${L.apex - 6} C ${W/2 - 7} ${L.apex - 14}, ${W/2 - 7} ${L.apex - 22}, ${W/2} ${L.apex - 34} Z" opacity=".95"/>
+      <circle cx="${W/2}" cy="${L.apex - 44}" r="2.4"/>
+    </g>`;
+
+  // Rising embers: seeded so every render matches
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const sp = document.getElementById('sparks');
+  sp.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const cy = H * (fmt === 'story' ? .45 : fmt === 'square' ? .42 : .46);
+  let out = '';
+  for (let i = 0; i < 90; i++) {
+    const ang = rnd() * Math.PI * 2, rad = Math.pow(rnd(), .7) * W * .46;
+    const x = W / 2 + Math.cos(ang) * rad, y = cy + Math.sin(ang) * rad * 1.15 - rnd() * 80;
+    const r = .6 + Math.pow(rnd(), 3) * 2.2, o = .15 + rnd() * .6 * (1 - rad / (W * .5));
+    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="#F2CF84" opacity="${Math.max(.08, o).toFixed(2)}"/>`;
+  }
+  sp.innerHTML = out;
+
+  // Threshold lamps: a quiet row of small diyas lining the base of the arch
+  const n = fmt === 'square' ? 9 : 11, span = W - 2 * L.inset - 150, y0 = H - L.row;
+  let lamps = `<defs><radialGradient id="sg"><stop offset="0" stop-color="#FFD98F" stop-opacity=".55"/><stop offset="1" stop-color="#FFD98F" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sf" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#D9772E"/><stop offset=".5" stop-color="#F6C25A"/><stop offset="1" stop-color="#FFF6DD"/></linearGradient></defs>`;
+  for (let i = 0; i < n; i++) {
+    const x = L.inset + 75 + span * i / (n - 1);
+    lamps += `<circle cx="${x}" cy="${y0 - 12}" r="22" fill="url(#sg)"/>
+      <path d="M${x} ${y0 - 26} C ${x + 4} ${y0 - 18}, ${x + 5} ${y0 - 12}, ${x + 2.6} ${y0 - 8} C ${x + 1.4} ${y0 - 6}, ${x - 1.4} ${y0 - 6}, ${x - 2.6} ${y0 - 8} C ${x - 5} ${y0 - 12}, ${x - 4} ${y0 - 18}, ${x} ${y0 - 26} Z" fill="url(#sf)"/>
+      <path d="M${x - 15} ${y0 - 4} Q ${x} ${y0 + 13} ${x + 15} ${y0 - 4} Z" fill="none" stroke="#B68E30" stroke-width="1.3"/>`;
+  }
+  frame.insertAdjacentHTML('beforeend', lamps);
+</script>
+</body>
+</html>
