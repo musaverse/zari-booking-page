@@ -30,7 +30,7 @@ const FPS = 30, DUR = 12.5, FRAMES = Math.round(FPS * DUR);
 const PAL = { forest: '#122616', maroon: '#291513' };
 const LAYOUTS = {
   portrait: { H: 1350, stage: 270, sign: 170, row: 112, inset: 56, spring: 470, apex: 92 },
-  story:    { H: 1920, stage: 600, sign: 250, row: 132, inset: 60, spring: 760, apex: 250 },
+  story:    { H: 1920, stage: 480, sign: 250, row: 132, inset: 60, spring: 760, apex: 250 },
 };
 const Q = new URLSearchParams(location.search);
 const theme = Q.get('theme') === 'maroon' ? 'maroon' : 'forest';
@@ -63,7 +63,7 @@ const G = (() => {
   g.lampTop = s + 370; g.lampLeft = W / 2 - 150;
   g.wick = { x: W / 2, y: g.lampTop + 44 };
   g.titleY = g.lampTop + 210; g.ruleY = g.lampTop + 252; g.lineY = g.lampTop + 296;
-  g.signImgY = H - Lo.sign - 76; g.housesY = H - Lo.sign - 2;
+  g.signImgY = H - Lo.sign - 52; g.housesY = H - Lo.sign - 2;
   const n = 11, span = W - 2 * Lo.inset - 150, y0 = H - Lo.row;
   g.row = [...Array(n)].map((_, i) => ({ x: Lo.inset + 75 + span * i / (n - 1), y: y0 }));
   return g;
@@ -127,9 +127,8 @@ function buildLayers(mono, mark) {
 
   // signature
   c = mk(); x = c.getContext('2d');
-  x.drawImage(mark, W / 2 - 66, G.signImgY, 132, 132 * 212 / 692);
+  x.drawImage(mark, W / 2 - 75, G.signImgY, 150, 150 * 212 / 692);
   x.font = '500 12px Manrope'; x.textAlign = 'center'; x.letterSpacing = '4.6px'; x.fillStyle = 'rgba(244,235,231,.52)';
-  x.fillText('MILN TOWN   ·   BIJAPUR LODGE', W / 2 + 2, G.housesY);
   layers.sign = c;
 
   // vignette
