@@ -62,7 +62,7 @@ const G = (() => {
   g.mono = { x: W / 2 - 115, y: s, w: 230, h: 336 };
   g.lampTop = s + 370; g.lampLeft = W / 2 - 150;
   g.wick = { x: W / 2, y: g.lampTop + 44 };
-  g.titleY = g.lampTop + 210; g.ruleY = g.lampTop + 252; g.lineY = g.lampTop + 296;
+  g.titleY = g.lampTop + 250; g.ruleY = g.lampTop + 292; g.lineY = g.lampTop + 336;
   g.signImgY = H - Lo.sign - 52; g.housesY = H - Lo.sign - 2;
   const n = 11, span = W - 2 * Lo.inset - 150, y0 = H - Lo.row;
   g.row = [...Array(n)].map((_, i) => ({ x: Lo.inset + 75 + span * i / (n - 1), y: y0 }));
@@ -410,6 +410,7 @@ function advanceTo(i) {
   render(i / FPS);
 }
 window.FRAMES = FRAMES;
+window.cues = () => ({ ignite: T_IGNITE, row: rowFlames.map(f => f.ti) });
 window.frame = i => { advanceTo(i); return cv.toDataURL('image/png'); };
 window.ready = (async () => {
   await Promise.all([document.fonts.load('italic 300 92px Fraunces'), document.fonts.load('500 15px Manrope')]);

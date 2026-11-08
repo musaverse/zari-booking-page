@@ -1,6 +1,6 @@
 // Renders the Deepavali film to MP4 (H.264, 30 fps). Usage, from this folder:
 //   node render-video.js                       -> all four films
-//   ONLY=forest-story node render-video.js     -> one film
+//   ONLY=forest-story node render-video.js     -> one film (needs python3 + numpy/scipy for the score)
 //   STILLS=0,45,60,120 OUT=/some/dir node render-video.js   -> PNG stills only (for checking)
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
@@ -39,6 +39,13 @@ const srv = http.createServer((q, r) => {
         if (!ff.stdin.write(Buffer.from(d.split(',')[1], 'base64'))) await new Promise(r => ff.stdin.once('drain', r));
       }
       ff.stdin.end(); await done;
+      // soundtrack: original score synthesised by music.py, cues locked to the animation
+      const wav = path.join(require('os').tmpdir(), 'zari-score.wav'), silent = out.replace('.mp4', '.silent.mp4');
+      require('child_process').execFileSync('python3', [path.join(root, 'music.py'), wav, String(N / 30)], { stdio: 'inherit' });
+      fs.renameSync(out, silent);
+      require('child_process').execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', silent, '-i', wav, '-map', '0:v', '-map', '1:a',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out], { stdio: 'inherit' });
+      fs.unlinkSync(silent);
       console.log(name, 'done in', ((Date.now() - t0) / 1000).toFixed(0) + 's');
     }
     await p.close();
