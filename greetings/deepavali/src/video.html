@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ZARI · Deepavali film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,300&family=Manrope:wght@500&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block;max-width:100vw;max-height:100vh;margin:auto}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+/*
+  ZARI Deepavali film. Everything is drawn on one canvas from a deterministic simulation,
+  so a frame index always gives the same picture (open with ?play to preview live).
+
+  Physics, briefly:
+  - Flame height: damped spring toward a fuel target (ignition overshoot, then settles),
+    plus low-frequency noise and the ~10 Hz flicker typical of open flames.
+  - Flame sway: damped spring driven by noisy air currents; the tip bends more than the base.
+  - Light: each flame is a point source, I = P / (1 + (d/r0)^2) (inverse-square with a soft core).
+    Gold elements are only as visible as the light reaching them; luminous power P grows with
+    flame area (~h^1.5). Ambient rises as the threshold lamps add light to the room.
+  - Embers: buoyancy proportional to temperature, linear air drag, turbulent drift,
+    exponential cooling; colour follows a blackbody-style ramp from white-yellow to deep red.
+  - Ignition sparks: ballistic under gravity with drag, cooling fast.
+*/
+const FPS = 30, DUR = 12.5, FRAMES = Math.round(FPS * DUR);
+const PAL = { forest: '#122616', maroon: '#291513' };
+const LAYOUTS = {
+  portrait: { H: 1350, stage: 270, sign: 170, row: 112, inset: 56, spring: 470, apex: 92 },
+  story:    { H: 1920, stage: 600, sign: 250, row: 132, inset: 60, spring: 760, apex: 250 },
+};
+const Q = new URLSearchParams(location.search);
+const theme = Q.get('theme') === 'maroon' ? 'maroon' : 'forest';
+const Lo = LAYOUTS[Q.get('format') === 'portrait' ? 'portrait' : 'story'];
+const W = 1080, H = Lo.H;
+
+const cv = document.getElementById('c'); cv.width = W; cv.height = H;
+const ctx = cv.getContext('2d');
+
+/* ---------- helpers ---------- */
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ss = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const easeOut = t => 1 - Math.pow(1 - clamp(t), 3);
+const lerp = (a, b, t) => a + (b - a) * t;
+const hash = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+function noise(x) { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return (hash(i) * (1 - u) + hash(i + 1) * u) * 2 - 1; }
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const R = rng(20261108);
+function mk(w = W, h = H) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function goldGrad(c, x0, y0, x1, y1) {
+  const g = c.createLinearGradient(x0, y0, x1, y1);
+  g.addColorStop(0, '#E2C277'); g.addColorStop(.48, '#B68E30'); g.addColorStop(1, '#8A6A21'); return g;
+}
+const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+/* ---------- geometry ---------- */
+const G = (() => {
+  const s = Lo.stage, g = {};
+  g.mono = { x: W / 2 - 115, y: s, w: 230, h: 336 };
+  g.lampTop = s + 370; g.lampLeft = W / 2 - 150;
+  g.wick = { x: W / 2, y: g.lampTop + 44 };
+  g.titleY = g.lampTop + 210; g.ruleY = g.lampTop + 252; g.lineY = g.lampTop + 296;
+  g.signImgY = H - Lo.sign - 76; g.housesY = H - Lo.sign - 2;
+  const n = 11, span = W - 2 * Lo.inset - 150, y0 = H - Lo.row;
+  g.row = [...Array(n)].map((_, i) => ({ x: Lo.inset + 75 + span * i / (n - 1), y: y0 }));
+  return g;
+})();
+
+function arch(d) {
+  const l = Lo.inset + d, r = W - Lo.inset - d, b = H - Lo.inset - d, s = Lo.spring + d * .4, a = Lo.apex + d;
+  const cx = W / 2, w = r - l;
+  return `M${l} ${b} L${l} ${s} C${l} ${s - w * .26}, ${cx - w * .2} ${a + w * .17}, ${cx - w * .05} ${a + w * .07}
+    Q${cx - 6} ${a + 12}, ${cx} ${a} Q${cx + 6} ${a + 12}, ${cx + w * .05} ${a + w * .07}
+    C${cx + w * .2} ${a + w * .17}, ${r} ${s - w * .26}, ${r} ${s} L${r} ${b} Z`;
+}
+
+/* ---------- static layers (drawn once) ---------- */
+const layers = {};
+function buildLayers(mono, mark) {
+  // arch + diya + threshold bowls
+  let c = mk(), x = c.getContext('2d');
+  x.strokeStyle = goldGrad(x, 0, 0, 0, H);
+  x.lineWidth = 1.6; x.globalAlpha = .9; x.stroke(new Path2D(arch(0)));
+  x.lineWidth = .8; x.globalAlpha = .55; x.stroke(new Path2D(arch(12)));
+  x.globalAlpha = .95; x.fillStyle = '#B68E30';
+  const A = Lo.apex, cx = W / 2;
+  x.fill(new Path2D(`M${cx} ${A - 34} C ${cx + 7} ${A - 22}, ${cx + 7} ${A - 14}, ${cx} ${A - 6} C ${cx - 7} ${A - 14}, ${cx - 7} ${A - 22}, ${cx} ${A - 34} Z`));
+  x.beginPath(); x.arc(cx, A - 44, 2.4, 0, 7); x.fill();
+  x.globalAlpha = 1;
+  // threshold bowls
+  x.strokeStyle = '#B68E30'; x.lineWidth = 1.3;
+  for (const p of G.row) x.stroke(new Path2D(`M${p.x - 15} ${p.y - 4} Q ${p.x} ${p.y + 13} ${p.x + 15} ${p.y - 4} Z`));
+  // diya
+  x.save(); x.translate(G.lampLeft, G.lampTop);
+  x.strokeStyle = goldGrad(x, 0, 0, 300, 150); x.lineCap = 'round'; x.lineWidth = 2.2;
+  x.beginPath(); x.ellipse(150, 52, 118, 12, 0, 0, 7); x.stroke();
+  x.stroke(new Path2D('M32 52 C 44 104, 96 122, 150 122 C 204 122, 256 104, 268 52'));
+  x.stroke(new Path2D('M120 122 C 124 130, 126 134, 112 140 L 188 140 C 174 134, 176 130, 180 122'));
+  x.lineWidth = 1.2; x.globalAlpha = .85; x.stroke(new Path2D('M58 78 C 90 92, 210 92, 242 78'));
+  x.globalAlpha = .8; x.beginPath(); x.moveTo(104, 146); x.lineTo(196, 146); x.stroke();
+  x.globalAlpha = .9; x.fillStyle = '#B68E30';
+  for (let i = 0; i < 9; i++) { const t = (i + 1) / 10; x.beginPath(); x.arc(58 + t * 184, 84 + (14 - 14 * Math.pow(2 * t - 1, 2)), 1.8, 0, 7); x.fill(); }
+  x.restore();
+  layers.static = c;
+
+  // monogram, tinted gold through the extracted alpha mask
+  c = mk(); x = c.getContext('2d'); const m = G.mono;
+  x.fillStyle = goldGrad(x, m.x, m.y, m.x + m.w * .55, m.y + m.h); x.fillRect(m.x, m.y, m.w, m.h);
+  x.globalCompositeOperation = 'destination-in'; x.drawImage(mono, m.x, m.y, m.w, m.h);
+  layers.mono = c;
+
+  // title
+  c = mk(); x = c.getContext('2d');
+  x.font = 'italic 300 92px Fraunces'; x.textAlign = 'center'; x.letterSpacing = '-0.9px';
+  x.fillStyle = goldGrad(x, 0, G.titleY - 72, 0, G.titleY + 22);
+  x.fillText('Shubh Deepavali', W / 2, G.titleY);
+  layers.title = c;
+
+  // line
+  c = mk(); x = c.getContext('2d');
+  x.font = '500 15px Manrope'; x.textAlign = 'center'; x.letterSpacing = '6.3px'; x.fillStyle = 'rgba(244,235,231,.74)';
+  x.fillText('MAY EVERY HOMECOMING GLOW', W / 2 + 3, G.lineY);
+  layers.line = c;
+
+  // signature
+  c = mk(); x = c.getContext('2d');
+  x.drawImage(mark, W / 2 - 66, G.signImgY, 132, 132 * 212 / 692);
+  x.font = '500 12px Manrope'; x.textAlign = 'center'; x.letterSpacing = '4.6px'; x.fillStyle = 'rgba(244,235,231,.52)';
+  x.fillText('MILN TOWN   ·   BIJAPUR LODGE', W / 2 + 2, G.housesY);
+  layers.sign = c;
+
+  // vignette
+  c = mk(); x = c.getContext('2d');
+  const v = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.hypot(W, H) * .55);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.45)');
+  x.fillStyle = v; x.fillRect(0, 0, W, H); layers.vignette = c;
+
+  // film grain tile
+  c = mk(256, 256); x = c.getContext('2d'); const id = x.createImageData(256, 256);
+  for (let i = 0; i < id.data.length; i += 4) { const g = 128 + (R() - .5) * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = g; id.data[i + 3] = 255; }
+  x.putImageData(id, 0, 0); layers.grain = ctx.createPattern(c, 'repeat');
+}
+
+const lightCv = mk(), lctx = lightCv.getContext('2d');
+const goldCv = mk(), gctx = goldCv.getContext('2d');
+const tmpCv = mk(), tctx = tmpCv.getContext('2d');
+
+/* ---------- simulation ---------- */
+const T_SMOULDER = .5, T_IGNITE = 1.45, T_ROW = 4.3;
+
+function makeFlame(x, y, h0, ti, seed, w, z) {
+  return { x, y, h0, ti, seed, w, z, h: 0, hv: 0, sx: 0, sv: 0, lit: false, flash: 0 };
+}
+const main = makeFlame(G.wick.x, G.wick.y, 58, T_IGNITE, 3.1, 5.2, .5);
+const mid = (G.row.length - 1) / 2;
+const rowFlames = G.row.map((p, i) => makeFlame(p.x, p.y - 6, 19, T_ROW + Math.abs(i - mid) * .17 + R() * .05, 11 + i * 7.3, 7, .45));
+const flames = [main, ...rowFlames];
+
+const parts = [];   // sparks + embers
+function spawn(o) { parts.push(Object.assign({ T: 1, drag: 1.1, g: 0, b: 0, tau: 1, ph: R() * 100 }, o)); }
+
+function burst(f, n, speed) {
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (R() - .5) * 2.4, v = speed * (.4 + R() * .8);
+    spawn({ x: f.x, y: f.y - f.h0 * .2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 520, drag: 1.6, tau: .22 + R() * .2, r: .7 + R() * .9 });
+  }
+}
+
+function stepFlame(f, t, dt) {
+  if (t < f.ti) return;
+  if (!f.lit) { f.lit = true; f.h = f.h0 * .1; f.flash = 1; burst(f, f === main ? 26 : 7, f === main ? 300 : 120); }
+  // fuel target with slow breathing + ~10 Hz flicker
+  const Ht = f.h0 * (1 + .07 * noise(t * 1.6 + f.seed) + .03 * noise(t * 6.8 + f.seed * 2) + .018 * Math.sin(t * 2 * Math.PI * 10.3 + f.seed));
+  const a = f.w * f.w * (Ht - f.h) - 2 * f.z * f.w * f.hv;
+  f.hv += a * dt; f.h += f.hv * dt;
+  // sway: spring driven by noisy draughts
+  const F = .9 * noise(t * .55 + f.seed * 5) + .45 * noise(t * 1.8 + f.seed * 7);
+  const ws = 6.5, zs = .2;
+  f.sv += (ws * ws * (F * .11 - f.sx) - 2 * zs * ws * f.sv) * dt; f.sx += f.sv * dt;
+  f.flash *= Math.exp(-dt / .16);
+}
+const power = f => f.lit ? Math.pow(Math.max(0, f.h) / f.h0, 1.5) * (1 + .7 * f.flash) : 0;
+
+const motes = [...Array(90)].map(() => ({ x: R() * W, y: R() * H, s: .6 + R() * 1.1, ph: R() * 6.28, sp: .6 + R() * 1.4 }));
+
+let simT = 0, emitAcc = 0;
+function step(t, dt) {
+  for (const f of flames) stepFlame(f, t, dt);
+  // embers lifted off the main flame tip once it is established
+  if (main.lit && t > T_IGNITE + .9) {
+    emitAcc += dt * 1.5;
+    while (emitAcc > 1) {
+      emitAcc -= 1 + (R() - .5) * .6;
+      const tip = main.y - main.h * .95;
+      spawn({ x: main.x + main.sx * main.h * .6 + (R() - .5) * 4, y: tip, vx: (R() - .5) * 46, vy: -40 - R() * 40, b: 150, drag: 1.0, tau: 1.1 + R() * 1.1, r: .8 + R() * 1.0 });
+    }
+  }
+  for (const p of parts) {
+    p.T *= Math.exp(-dt / p.tau);
+    const turb = 38 * Math.sin(p.y * .017 + t * 1.3 + p.ph) + 26 * noise(t * 2.2 + p.ph);
+    p.vx += (turb * (p.b ? 1 : .2) - p.drag * p.vx) * dt;
+    p.vy += (p.g - p.b * p.T - p.drag * p.vy) * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+  }
+  for (let i = parts.length - 1; i >= 0; i--) if (parts[i].T < .03) parts.splice(i, 1);
+  for (const m of motes) { m.y -= 3.5 * dt; m.x += 4 * noise(t * .3 + m.ph * 9) * dt; if (m.y < 0) m.y += H; }
+}
+
+/* ---------- rendering ---------- */
+function sources(t) {
+  const s = [];
+  const sm = (t > T_SMOULDER && !main.lit) ? .07 * ss(T_SMOULDER, T_IGNITE, t) * (1 + .3 * noise(t * 5)) : 0;
+  s.push({ x: main.x, y: main.y - main.h * .45, P: power(main) * 1.3 + sm, r0: main.lit ? 250 : 40 });
+  for (const f of rowFlames) s.push({ x: f.x, y: f.y - f.h * .45, P: power(f) * .7, r0: 105 });
+  return s;
+}
+const illum = (S, x, y) => S.reduce((a, s) => a + s.P / (1 + ((x - s.x) ** 2 + (y - s.y) ** 2) / (s.r0 * s.r0)), 0);
+
+function lightMap(S, amb) {
+  lctx.globalCompositeOperation = 'source-over'; lctx.clearRect(0, 0, W, H);
+  lctx.fillStyle = `rgba(255,255,255,${amb})`; lctx.fillRect(0, 0, W, H);
+  lctx.globalCompositeOperation = 'lighter';
+  for (const s of S) {
+    if (s.P < .002) continue;
+    const Rr = s.r0 * 6, g = lctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, Rr);
+    for (let k = 0; k <= 20; k++) {
+      const d = Rr * k / 20, v = s.P * (1 / (1 + (d / s.r0) ** 2) - 1 / 37) * 37 / 36;
+      g.addColorStop(k / 20, `rgba(255,255,255,${clamp(v).toFixed(4)})`);
+    }
+    lctx.fillStyle = g; lctx.fillRect(s.x - Rr, s.y - Rr, 2 * Rr, 2 * Rr);
+  }
+}
+
+function sheen(layer, p, x0, y0, x1, y1, strength) {
+  if (p <= 0 || p >= 1) return;
+  tctx.globalCompositeOperation = 'source-over'; tctx.clearRect(0, 0, W, H); tctx.drawImage(layer, 0, 0);
+  tctx.globalCompositeOperation = 'source-in';
+  const bx = lerp(x0 - 160, x1 + 160, p), g = tctx.createLinearGradient(bx - 80, y0, bx + 80, y1);
+  g.addColorStop(0, 'rgba(255,240,200,0)'); g.addColorStop(.5, `rgba(255,244,214,${strength})`); g.addColorStop(1, 'rgba(255,240,200,0)');
+  tctx.fillStyle = g; tctx.fillRect(x0 - 10, y0 - 10, x1 - x0 + 20, y1 - y0 + 20);
+  gctx.globalCompositeOperation = 'lighter'; gctx.drawImage(tmpCv, 0, 0); gctx.globalCompositeOperation = 'source-over';
+}
+
+function flamePath(c, x, y, h, sway, k = 1) {
+  const hh = h * k, w = h * .36 * k, tx = x + sway * h * .7, ty = y - hh, mx = sway * h * .28;
+  c.beginPath();
+  c.moveTo(tx, ty);
+  c.bezierCurveTo(tx + w * .12, y - hh * .62, x + mx + w * .62, y - hh * .32, x + w * .5, y - hh * .07);
+  c.bezierCurveTo(x + w * .36, y + hh * .05, x - w * .36, y + hh * .05, x - w * .5, y - hh * .07);
+  c.bezierCurveTo(x + mx - w * .62, y - hh * .32, tx - w * .12, y - hh * .62, tx, ty);
+  c.closePath();
+}
+
+function drawFlame(f, t, scale) {
+  const P = power(f);
+  if (!f.lit || f.h < .5) return;
+  const { x, y, h } = f, sw = f.sx;
+  ctx.save();
+  // halo (scattering in the air around the flame)
+  ctx.globalCompositeOperation = 'lighter';
+  let g = ctx.createRadialGradient(x, y - h * .5, 0, x, y - h * .5, h * 2.6);
+  g.addColorStop(0, `rgba(255,214,140,${.5 * Math.min(P, 1.5)})`); g.addColorStop(.35, `rgba(255,170,80,${.16 * Math.min(P, 1.5)})`); g.addColorStop(1, 'rgba(255,150,60,0)');
+  ctx.fillStyle = g; ctx.fillRect(x - h * 3, y - h * 3.2, h * 6, h * 6);
+  // outer mantle
+  ctx.filter = `blur(${4 * scale}px)`;
+  flamePath(ctx, x, y, h, sw, 1.28);
+  g = ctx.createLinearGradient(0, y, 0, y - h * 1.3);
+  g.addColorStop(0, 'rgba(255,110,30,.25)'); g.addColorStop(.5, 'rgba(255,150,50,.35)'); g.addColorStop(1, 'rgba(255,170,70,0)');
+  ctx.fillStyle = g; ctx.fill();
+  // body
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.filter = `blur(${1.1 * scale}px)`;
+  flamePath(ctx, x, y, h, sw, 1);
+  g = ctx.createLinearGradient(0, y + h * .04, 0, y - h);
+  g.addColorStop(0, 'rgba(230,100,30,.85)'); g.addColorStop(.18, 'rgba(255,170,60,.98)'); g.addColorStop(.5, 'rgba(255,224,140,1)');
+  g.addColorStop(.85, 'rgba(255,240,200,.75)'); g.addColorStop(1, 'rgba(255,245,215,.1)');
+  ctx.fillStyle = g; ctx.fill();
+  // blue base where combustion is cleanest
+  ctx.filter = `blur(${1.6 * scale}px)`;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = 'rgba(70,110,255,.38)';
+  ctx.beginPath(); ctx.ellipse(x, y - h * .06, h * .13, h * .07, 0, 0, 7); ctx.fill();
+  // wick: dark core with glowing tip
+  ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = 'rgba(40,18,8,.85)'; ctx.lineWidth = 1.6 * scale; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x, y + 2 * scale); ctx.quadraticCurveTo(x + sw * 4 * scale, y - h * .1, x + sw * 6 * scale, y - h * .2); ctx.stroke();
+  // white-hot core
+  ctx.filter = `blur(${2.2 * scale}px)`; ctx.globalCompositeOperation = 'lighter';
+  flamePath(ctx, x + sw * h * .05, y - h * .2, h * .62, sw * .8, 1);
+  ctx.fillStyle = 'rgba(255,252,236,.85)'; ctx.fill();
+  ctx.restore();
+}
+
+function emberColor(T) {
+  const stops = [[0, 120, 20, 5], [.2, 200, 50, 10], [.45, 255, 120, 35], [.7, 255, 196, 100], [1, 255, 246, 222]];
+  for (let i = 1; i < stops.length; i++) if (T <= stops[i][0]) {
+    const a = stops[i - 1], b = stops[i], u = (T - a[0]) / (b[0] - a[0]);
+    return [lerp(a[1], b[1], u), lerp(a[2], b[2], u), lerp(a[3], b[3], u)];
+  }
+  return stops[4].slice(1);
+}
+
+function render(t) {
+  const S = sources(t);
+  const amb = .78 * ss(3.4, 9.0, t);
+
+  // background + warm scattering
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.filter = 'none';
+  ctx.fillStyle = PAL[theme]; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [i, s] of S.entries()) {
+    if (s.P < .002) continue;
+    const r = i === 0 ? 540 : 120, a = (i === 0 ? .2 : .12) * Math.min(s.P, 1.4);
+    ctx.save(); ctx.translate(s.x, s.y); ctx.scale(1, i === 0 ? 1.15 : 1);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, `rgba(226,178,90,${a})`); g.addColorStop(.5, `rgba(226,178,90,${a * .35})`); g.addColorStop(1, 'rgba(226,178,90,0)');
+    ctx.fillStyle = g; ctx.fillRect(-r, -r, 2 * r, 2 * r); ctx.restore();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // gold elements, revealed only by the light that reaches them
+  lightMap(S, amb);
+  gctx.globalCompositeOperation = 'source-over'; gctx.globalAlpha = 1; gctx.filter = 'none';
+  gctx.clearRect(0, 0, W, H);
+  gctx.drawImage(layers.static, 0, 0);
+  gctx.drawImage(layers.mono, 0, 0);
+  const m = G.mono;
+  sheen(layers.mono, (t - 3.6) / 1.5, m.x, m.y, m.x + m.w, m.y + m.h, .55);
+
+  const tt = (t - 5.2) / 1.8;
+  if (tt > 0) {
+    gctx.save(); gctx.globalAlpha = easeOut(tt); gctx.filter = `blur(${(1 - easeOut(tt)) * 10}px)`;
+    gctx.drawImage(layers.title, 0, (1 - easeOut(tt)) * 16); gctx.restore();
+    sheen(layers.title, (t - 9.4) / 1.6, W / 2 - 270, G.titleY - 80, W / 2 + 270, G.titleY + 25, .7);
+  }
+  const rw = 64 * easeOut((t - 6.5) / 1.0);
+  if (rw > 0) { gctx.fillStyle = 'rgba(182,142,48,.75)'; gctx.fillRect(W / 2 - rw / 2, G.ruleY, rw, 1); }
+  const lt = (t - 6.8) / 1.2;
+  if (lt > 0) { gctx.save(); gctx.globalAlpha = easeOut(lt); gctx.drawImage(layers.line, 0, (1 - easeOut(lt)) * 8); gctx.restore(); }
+  const st = (t - 7.8) / 1.4;
+  if (st > 0) { gctx.save(); gctx.globalAlpha = easeOut(st); gctx.drawImage(layers.sign, 0, 0); gctx.restore(); }
+  gctx.globalCompositeOperation = 'destination-in'; gctx.drawImage(lightCv, 0, 0);
+  ctx.drawImage(goldCv, 0, 0);
+
+  // dust motes, visible only where the light catches them
+  ctx.globalCompositeOperation = 'lighter';
+  for (const mo of motes) {
+    const b = clamp(illum(S, mo.x, mo.y) * .55 + amb * .15) * (.45 + .55 * Math.sin(t * mo.sp + mo.ph) ** 2);
+    if (b < .02) continue;
+    ctx.fillStyle = `rgba(242,207,132,${(b * .7).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(mo.x, mo.y, mo.s, 0, 7); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(layers.vignette, 0, 0);
+
+  // smouldering wick before ignition
+  if (!main.lit && t > T_SMOULDER) {
+    const a = ss(T_SMOULDER, T_IGNITE, t) * (.7 + .3 * noise(t * 6));
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(main.x, main.y - 3, 0, main.x, main.y - 3, 14);
+    g.addColorStop(0, `rgba(255,120,40,${.9 * a})`); g.addColorStop(.3, `rgba(220,60,20,${.35 * a})`); g.addColorStop(1, 'rgba(200,40,10,0)');
+    ctx.fillStyle = g; ctx.fillRect(main.x - 14, main.y - 17, 28, 28);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  for (const f of rowFlames) drawFlame(f, t, .4);
+  drawFlame(main, t, 1);
+
+  // ignition flash
+  if (main.flash > .01) {
+    ctx.globalCompositeOperation = 'lighter';
+    const r = 160, g = ctx.createRadialGradient(main.x, main.y - 20, 0, main.x, main.y - 20, r);
+    g.addColorStop(0, `rgba(255,236,190,${.38 * main.flash})`); g.addColorStop(1, 'rgba(255,200,120,0)');
+    ctx.fillStyle = g; ctx.fillRect(main.x - r, main.y - 20 - r, 2 * r, 2 * r);
+  }
+
+  // sparks and embers
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of parts) {
+    const [r, g, b] = emberColor(p.T), a = clamp(p.T * 1.5);
+    ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},${(a * .22).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 3.2, 0, 7); ctx.fill();
+    ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},${a.toFixed(3)})`;
+    if (p.g) { // fast sparks streak along their velocity
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = p.r * 1.3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx / FPS * .9, p.y - p.vy / FPS * .9); ctx.stroke();
+    } else { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); }
+  }
+
+  // grain + fade from black
+  ctx.save(); ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = .07;
+  const ox = (R() * 256) | 0, oy = (R() * 256) | 0;
+  ctx.translate(-ox, -oy); ctx.fillStyle = layers.grain; ctx.fillRect(ox, oy, W, H); ctx.restore();
+  const fade = 1 - ss(0, .7, t);
+  if (fade > 0) { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ---------- driver ---------- */
+const SUB = 4;
+let cur = -1;
+function advanceTo(i) {
+  while (cur < i) {
+    cur++;
+    const t0 = cur / FPS;
+    for (let k = 0; k < SUB; k++) step(t0 + k / (FPS * SUB), 1 / (FPS * SUB));
+  }
+  render(i / FPS);
+}
+window.FRAMES = FRAMES;
+window.frame = i => { advanceTo(i); return cv.toDataURL('image/png'); };
+window.ready = (async () => {
+  await Promise.all([document.fonts.load('italic 300 92px Fraunces'), document.fonts.load('500 15px Manrope')]);
+  const [mono, mark] = await Promise.all([loadImg('monogram.png'), loadImg('zari-gold.svg')]);
+  buildLayers(mono, mark);
+  if (Q.has('play')) {
+    const start = performance.now();
+    const loop = () => { const i = Math.floor((performance.now() - start) / 1000 * FPS); if (i < FRAMES) { advanceTo(i); requestAnimationFrame(loop); } };
+    loop();
+  }
+  return true;
+})();
+</script>
+</body>
+</html>
